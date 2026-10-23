@@ -1,0 +1,2 @@
+T2: one re-pairing per seed 0.526 (seed SD 0.210); mean of 500 re-pairings 0.499
+T3: one re-pairing per seed 0.496 (seed SD 0.122); mean of 500 re-pairings 0.503
