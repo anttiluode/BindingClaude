@@ -76,3 +76,64 @@ learners: Barak et al. 2022).
 Partial information decomposition and synergy (Williams & Beer 2010); XOR as the canonical
 synergistic case; one-time pad (Shannon 1949); sparse parity learning (Barak et al. 2022);
 ClaudeRepo1's three-piece gate and world.html.
+
+---
+
+# Part 2 — dendrites: can lateral axons + nonlinear dendrites + Hebb bind?
+
+Written 2026-10-23, after Part 1's results and before any Part 2 code.
+
+## Claim
+
+In a pure-synergy world, every single-input and pairwise Hebbian correlation is exactly
+zero (E[y·xᵢ] = E[y·xᵢxⱼ] = 0 for order ≥ 3), so Hebbian learning over inputs or pairs is
+blind to the binding. A dendritic branch that **multiplies** its inputs (coincidence
+detection) creates the product locally. A Hebbian synapse from that branch to the soma can
+then learn the binding, provided useless branches are rewired (turnover).
+
+## Learner (`dendrite.py`)
+
+- **Lateral axons:** M = 200 branches. Each receives k ∈ {2, 3, 4} inputs (uniform),
+  routed at random from all N input pieces.
+- **Branch:** b = Π zᵢ over its inputs (multiplicative dendrite).
+- **Hebbian soma synapse:** the branch's running mean c = ⟨y·b⟩ since its birth. The teacher
+  signal y is the hidden piece, observed during experience (self-prediction). That makes it
+  three-factor Hebb, not unsupervised Hebb.
+- **Turnover:** at age A = 200 experiences, a branch is consolidated if
+  |c| / SE(c) > 5; otherwise it is rewired at random. A branch's weight stays silent (0)
+  until consolidated.
+- **Soma:** sign(Σ c·b) over consolidated branches (+1 if none).
+- Experience is a stream of fresh examples. The test set is 2000 fresh examples, with 10
+  seeds.
+
+## Variants
+
+| name | branch computes | role |
+|---|---|---|
+| H-prod | product of k ∈ {2,3,4} inputs | the claim |
+| H-single | one input (k = 1) | Hebb over inputs |
+| H-pair | product of exactly 2 inputs | Hebb over pairs |
+| H-lin | sum of k ∈ {2,3,4} inputs | linear dendrite: the cut |
+| H-and | 1 if all inputs (with random polarity) are positive, else 0 | threshold dendrite, reported only |
+
+## Gates (tasks T1–T3 from Part 1, D = 8 clutter, stream of 20,000 experiences)
+
+| gate | test | pass |
+|---|---|---|
+| D1 exact blindness | noise-free enumeration, T2 and T3, D = 0 | every E[y·xᵢ] and E[y·xᵢxⱼ] is 0, and E[y·Π true] = 1 (tolerance 1e-12) |
+| D2 Hebb works at first order | H-single on T1 | ≥ 95% |
+| D2b Hebb over inputs and pairs is blind | H-single and H-pair on T2 and T3 | mean within 50 ± 3% |
+| D3 dendrites bind | H-prod on T2 and T3 | ≥ 95% in ≥ 9/10 seeds, and a consolidated branch wired exactly to the true set in ≥ 9/10 seeds |
+| D4 cut: linear dendrites | H-lin on T2 and T3 | mean within 50 ± 3% |
+| D4b knockout | trained H-prod with its true-set branches silenced at test | mean within 50 ± 3% |
+| D5 cost | experiences until test accuracy (500 fresh examples, checked every 200) first reaches 95%, H-prod, T2 and T3, D ∈ {0, 8, 16}, stream of 40,000 | reported |
+
+D5 prediction, written now: a random branch hits the true set with probability
+p = (1/3)/C(N, k_true), and all non-consolidated branches are re-drawn every A experiences.
+So the expected experiences ≈ A/(M·p) = A·3·C(N, k)/M. For T3: about 1,500 at D = 8 and
+about 15,000 at D = 16. That is linear in the number of candidate wirings, unlike Part 1's
+search (whose sample need was near-flat), because here each candidate costs A
+experiences of on-line testing.
+
+H-and is reported only. A single threshold branch carries just 2^(1−k) of a k-way parity,
+so it should rarely pass the consolidation test alone.
