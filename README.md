@@ -168,3 +168,25 @@ gets no signal from lower-order terms, a sampled-and-tested one doesn't need any
 Williams & Beer 2010 (partial information decomposition, synergy); Poirazi & Mel 2003 (the neuron as a two-layer network); Chklovskii et al. 2004 (structural plasticity and wiring); Shannon 1949
 (one-time pad); Barak et al. 2022 (sparse parity and SGD); ClaudeRepo1 (three-piece gate,
 world.html); Välikäsi (keyed residue in LLM notes).
+
+
+## Part 3 — two clocks, one learned constraint graph (2026-10-23)
+
+See the **[Part 3 ledger](results/PART3_LEDGER.md)**, the **[locked inference protocol](PART3_PROTOCOL_LOCK.md)**, and [PREREG.md](PREREG.md). Python + NumPy, no changes to Parts 1–2.
+
+The *learning clock* watches complete examples, samples high-order wire sets, consolidates statistically persistent products and rewires unsupported branches. It does not use a supervised target at this stage. The *thinking clock* clamps noisy visible signs and iteratively updates hidden sites against **frozen** learned couplings, with targets masked to zero before inference. It uses asynchronous one-bit updates and keeps zero on a tie.
+
+Ten-seed results at 20,000 experiences and 2,000 fresh tests per seed: **S0/S1/S2/S2b all PASS**. The chained final hidden piece goes from **50% expected chance on unresolved one-shot** to **99.10%** after settling; context outcomes are **99.59%** each; selective knockout drops only the intended context to **49.59%**. The chain resolves in one correctly ordered asynchronous sweep followed by a convergence check, not an extended relaxation process.
+
+The important caveats are as valuable as the passes: a regular lookup reaches **99.2% / 99.6%** with enough examples; the 100-update direct and branch-assisted MLPs are **not capacity-matched**; ordinary ungated correlations partly solve context; and **S4 revision fails in 9/10 seeds** after flipping the learned rule, although the untouched context stays accurate. These toy results do **not** establish image completion, biology, or gradient learning's general inferiority.
+
+Reproduce locally:
+
+\`\`\`bash
+python part3.py
+python part3_controls.py --mode baselines --updates 100
+python part3_controls.py --mode revision
+python -m unittest discover -s tests -p 'test_part3.py'
+\`\`\`
+
+For the baseline experiment, 100 steps is an explicitly **post-smoke compute limit**, not a fully explored or preregistered SGD training budget. The next honest question is whether the learned recurrent structure makes robust **revision** possible and whether its benefits survive neutralizing favourable update order and increasing task complexity.
