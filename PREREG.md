@@ -137,3 +137,68 @@ experiences of on-line testing.
 
 H-and is reported only. A single threshold branch carries just 2^(1−k) of a k-way parity,
 so it should rarely pass the consolidation test alone.
+
+---
+
+# Part 3 — two clocks on the same branches: discover, then settle
+
+Written 2026-10-23, after Part 2 and after Astra's review (consolidated branches are never
+re-tested; the gradient comparison isn't fair yet). Pre-registered before any Part 3 code.
+Not yet built.
+
+## Idea
+
+- **Learning clock (Part 2, made unsupervised).** During experience every piece is
+  observed, including the ones later hidden. A branch's coupling is c_b = ⟨Π_{i∈b} zᵢ⟩, which
+  is higher-order Hebb on the joint with no teacher. Turnover as in Part 2: M = 200,
+  k ∈ {2, 3, 4}, consolidate at age A = 200 if |z| > 5, otherwise rewire.
+- **Thinking clock (SighImageSuper's "pass it back until it stops changing", made
+  nonlinear).** At test, covered pieces start at 0. Each sweep sets every covered piece
+  xⱼ ← sign(Σ_{b∋j} c_b Π_{i∈b, i≠j} xᵢ), with visible pieces as their sign. Iterate until
+  nothing changes (at most 10 sweeps). This descends E = −Σ_b c_b Π_{i∈b} xᵢ, a higher-order
+  Hopfield energy whose couplings were found by experience.
+- **One-shot** = a single simultaneous sweep with every covered piece held at 0.
+
+Noise σ = 0.35 on ±1 pieces as before; 10 seeds; 2000 test cases; stream of 20,000
+experiences.
+
+## Worlds
+
+**W-chain.** Visible a, b, c, d; hidden h1, h2, h3; 6 clutter pieces. Rules:
+h1 = a·b, h2 = h1·c, h3 = h2·d (every rule is a 3-body binding). h3 = a·b·c·d·(…) needs a
+5-body branch to be read in one shot, beyond k ≤ 4. So h3 can only be filled by settling
+through the chain. (h2 has a reachable 4-body shortcut {a,b,c,h2}; h1 needs none.)
+
+**W-context.** Visible b, c, d, e (±1, noisy) and two gate pieces g+, g− (one-hot 0/1,
+noiseless: an absent context is 0, not −1); target t; 4 clutter pieces. In context + the
+rule is t = b·c; in context − it is t = d·e. A multiplicative branch containing a gate piece
+is silent when that context is absent. That is the "conducts only when its other inputs are
+present" claim.
+
+## Gates
+
+| gate | test | pass |
+|---|---|---|
+| S0 | W-chain and W-context: the true bindings ({a,b,h1}, {h1,c,h2}, {h2,d,h3}; {b,c,t} or {g+,b,c,t}, and {d,e,t} or {g−,d,e,t}) are among consolidated branches | ≥ 9/10 seeds |
+| S1 settling beats one-shot | W-chain, h3 covered (with h1, h2) | one-shot h3 within 50 ± 3%; settled h3 ≥ 95% in ≥ 9/10 seeds |
+| S2 context gating | W-context, t covered | ≥ 95% in each context (mean of seeds) |
+| S2b selective knockout | silence every consolidated branch containing {b, c, t} | context + within 50 ± 3%; context − still ≥ 95% |
+| S3 baselines (reported) | at 500, 2000 and 20,000 experiences: (i) MLP trained directly on the covered target from visible pieces, (ii) lookup table over the visible pieces' signs, (iii) MLP given the consolidated branches' outputs as extra input features (the fair search + gradient combination) | reported, no threshold |
+| S4 revision (reported) | W-context, after 20,000 experiences the rule in context + flips sign (t = −b·c). Consolidated branches keep an exponential running mean (decay 0.99 per 50 experiences) and are re-opened if \|z\| < 2 | experiences until context + is back to ≥ 95%, and whether context − is disturbed; reported |
+
+Predictions written now: S1 one-shot h3 ≈ 50% exactly (no reachable branch carries it);
+S3 (i) the MLP needs far more experience for h3 (5-way parity of visible pieces) than for t;
+S3 (iii) is the best of the baselines; S4 recovers in roughly A·(a few) experiences because the
+same wiring stays useful and only the coupling's sign must change.
+
+## What it would and wouldn't show
+
+It would show experience-found bindings reused by a settling process, gated by context, with
+causal knockouts. It wouldn't show biological dendrites, natural images, or that this beats
+gradient learning in general; S3 is there to keep that honest.
+
+## Prior art
+
+Sigma-pi units (Rumelhart, Hinton & McClelland 1986); higher-order Boltzmann machines
+(Sejnowski 1986); dense associative memory (Krotov & Hopfield 2016); Barak et al. 2022 (hidden
+progress of SGD on parity, the reason S3 (i) is reported, not gated).
