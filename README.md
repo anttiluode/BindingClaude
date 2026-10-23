@@ -78,6 +78,66 @@ every subset of up to 4 of 20 pieces (6,195 candidates). Samples are cheap for i
 search is not. That is the trade ClaudeRepo1 left open, now measured. The MLP pattern is
 the known sparse-parity difficulty (Barak et al. 2022).
 
+## Part 2 — dendrites: lateral axons + nonlinear branches + Hebb
+
+Pre-registered as Part 2 of [PREREG.md](PREREG.md) before any of this code. `python dendrite.py`
+(about 2 minutes). Raw: [results/dendrite.json](results/dendrite.json),
+[results/DENDRITE_LEDGER.md](results/DENDRITE_LEDGER.md).
+
+**Why Hebb alone can't bind.** In a pure-synergy world every single and pairwise correlation
+with the target is exactly zero: E[y·xᵢ] = E[y·xᵢxⱼ] = 0, while E[y·x₁x₂x₃] = 1. A Hebbian
+update over inputs or pairs averages to nothing, so no amount of lateral wiring helps on its
+own.
+
+**The learner.** 200 dendritic branches, each fed 2–4 pieces routed at random (the lateral
+axons). A branch multiplies its inputs (coincidence detection). Its synapse onto the soma
+learns ⟨y·b⟩ (three-factor Hebb: y is the hidden piece, observed during experience). At age
+200 a branch is consolidated if its correlation is significant (z > 5); otherwise it is
+rewired (turnover).
+
+| gate | claim | result | |
+|---|---|---|---|
+| D1 | exact: all single and pairwise Hebbian correlations vanish | max \|E[y·xᵢ]\| = max \|E[y·xᵢxⱼ]\| = 0, E[y·Π] = 1 | **PASS** |
+| D2 | Hebb works at first order (T1) | 99.8% | **PASS** |
+| D2b | Hebb over inputs or pairs is blind (T2, T3) | 49.7–50.0% | **PASS** |
+| D3 | multiplicative dendrites + Hebb + turnover bind | T2 99.4%, T3 99.2%; ≥ 95% and wired exactly to the true pieces in **10/10** seeds each | **PASS** |
+| D4 | cut: linear dendrites (sum instead of product) | 49.3%, 50.7% | **PASS** |
+| D4b | knockout: silence the true-set branches at test | 50.6%, 49.5% | **PASS** |
+
+**D5: experiences to 95%** (10 seeds, median), against the registered prediction
+mean ≈ A·(number of wirings)/M:
+
+| task (order) | clutter | median | mean | predicted mean |
+|---|---|---|---|---|
+| T2 (3) | 8 | 600 | 820 | 495 |
+| T2 (3) | 16 | 2,200 | 2,360 | 2,907 |
+| T3 (4) | 8 | 1,000 | 1,420 | 1,485 |
+| T3 (4) | 16 | 4,600 | 8,760 | 14,535 |
+
+The search behaves as a geometric waiting time (T3, D = 16 spans 200 to 23,600 across seeds),
+and cost grows with the number of possible wirings, C(N, k). That is the price of finding a
+binding by random lateral growth. Part 1's exhaustive search tested all wirings at once and
+needed about 100 examples; dendrites test 200 at a time and need thousands of experiences,
+but each one is a single local operation.
+
+**Threshold (AND) dendrites, reported only.** A branch that fires when all its inputs agree
+carries 2^(1−k) of a k-way parity. For 3-way binding (T2) that was enough: 98.2%, with true-set
+branches consolidated in 10/10 seeds, several AND branches with different input polarities
+jointly forming the table. For 4-way (T3) it was not: 49.5%, 0/10. I predicted it would rarely
+pass for both; it was wrong for order 3.
+
+**Two code changes, both logged.** The seed mix used Python's `hash()`, which varies between
+processes; it was replaced with `crc32` before any result was produced. The D5 sweep then
+crashed on T2 with no clutter (3 inputs cannot feed a 4-input branch); branch size is now
+capped at the number of inputs, which only affects that one cell.
+
+**What Part 2 means.** Lateral axons + Hebb can't bind. Lateral axons + *multiplicative
+dendrites* + Hebb + turnover can, and remove the multiplication (or the branch) and the ability
+goes. It is the two-layer neuron (Poirazi & Mel 2003) and structural plasticity used as a
+binding machine: known parts, now with exact blindness, a cut, a knockout and a measured
+search cost. It also suggests a fix for BindingSol's 75% plateau: a gradient-trained sender
+gets no signal from lower-order terms, a sampled-and-tested one doesn't need any.
+
 ## What it means
 
 1. **A third party's residue is unusable without the key, for every reader.** That's
@@ -105,6 +165,6 @@ the known sparse-parity difficulty (Barak et al. 2022).
 
 ## Prior art
 
-Williams & Beer 2010 (partial information decomposition, synergy); Shannon 1949
+Williams & Beer 2010 (partial information decomposition, synergy); Poirazi & Mel 2003 (the neuron as a two-layer network); Chklovskii et al. 2004 (structural plasticity and wiring); Shannon 1949
 (one-time pad); Barak et al. 2022 (sparse parity and SGD); ClaudeRepo1 (three-piece gate,
 world.html); Välikäsi (keyed residue in LLM notes).
